@@ -1,0 +1,113 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id               String            @id @default(cuid())
+  email            String            @unique
+  password         String
+  name             String?
+  createdAt        DateTime          @default(now())
+  entries          Entry[]
+  todos            Todo[]
+  dailyCards       DailyCard[]
+  dailyReflections DailyReflection[]
+}
+
+model Entry {
+  id        String     @id @default(cuid())
+  title     String
+  content   String
+  type      String
+  date      DateTime
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  userId    String
+  user      User       @relation(fields: [userId], references: [id])
+  tags      EntryTag[]
+}
+
+model Todo {
+  id        String    @id @default(cuid())
+  title     String
+  done      Boolean   @default(false)
+  dueDate   DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
+  tags      TodoTag[]
+}
+
+model Tag {
+  id           String         @id @default(cuid())
+  name         String         @unique
+  color        String         @default("#6366f1")
+  entryTags    EntryTag[]
+  todoTags     TodoTag[]
+  dailyCardTags DailyCardTag[]
+}
+
+model DailyReflection {
+  id        String   @id @default(cuid())
+  dateStr   String   // "yyyy-MM-dd" 형식 문자열
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@unique([userId, dateStr])
+}
+
+model DailyCard {
+  id        String         @id @default(cuid())
+  title     String
+  content   String         @default("")
+  slot      String         // WORK, TOMORROW
+  date      DateTime
+  startTime String?        // HH:MM
+  endTime   String?        // HH:MM
+  done      Boolean        @default(false)
+  order     Int            @default(0)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  userId    String
+  user      User           @relation(fields: [userId], references: [id])
+  tags      DailyCardTag[]
+}
+
+model DailyCardTag {
+  cardId String
+  tagId  String
+  card   DailyCard @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  tag    Tag       @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([cardId, tagId])
+}
+
+model EntryTag {
+  entryId String
+  tagId   String
+  entry   Entry  @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  tag     Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([entryId, tagId])
+}
+
+model TodoTag {
+  todoId String
+  tagId  String
+  todo   Todo   @relation(fields: [todoId], references: [id], onDelete: Cascade)
+  tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([todoId, tagId])
+}
+
+// EntryType values: DAILY, MEETING, MEMO (stored as String for SQLite compatibility)
