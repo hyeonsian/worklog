@@ -31,6 +31,8 @@ export default function HomePage() {
   const [isNewEntry, setIsNewEntry] = useState(false);
   const [loadingEntries, setLoadingEntries] = useState(false);
   const [loadingTodos, setLoadingTodos] = useState(false);
+  const [sendingToDaily, setSendingToDaily] = useState(false);
+  const [sentToDaily, setSentToDaily] = useState(false);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -260,6 +262,55 @@ export default function HomePage() {
     setIsNewEntry(false);
   };
 
+  const handleSendToDaily = async (title: string, date: string, meetingTime: string) => {
+    setSendingToDaily(true);
+    try {
+      // '회의' 태그 찾기 or 생성
+      let meetingTag = tags.find((t) => t.name === "회의");
+      if (!meetingTag) {
+        const res = await fetch("/api/tags", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: "회의", color: "#8b5cf6" }),
+        });
+        if (res.ok) {
+          meetingTag = await res.json();
+          if (meetingTag) {
+            setTags((prev) =>
+              prev.find((t) => t.id === meetingTag!.id)
+                ? prev
+                : [...prev, meetingTag!].sort((a, b) => a.name.localeCompare(b.name))
+            );
+          }
+        }
+      }
+
+      const cardDate = date;
+      const cardStartTime = meetingTime && meetingTime !== "00:00" ? meetingTime : undefined;
+
+      const res = await fetch("/api/daily-cards", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: title || "회의",
+          date: cardDate,
+          startTime: cardStartTime,
+          slot: "WORK",
+          tagIds: meetingTag ? [meetingTag.id] : [],
+        }),
+      });
+
+      if (res.ok) {
+        setSentToDaily(true);
+        setTimeout(() => setSentToDaily(false), 3000);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSendingToDaily(false);
+    }
+  };
+
   // Todo handlers
   const handleAddTodo = async (title: string, options: { dueDate?: string; priority?: string; tagIds?: string[] }) => {
     try {
@@ -402,6 +453,9 @@ export default function HomePage() {
                   onDelete={handleDeleteEntry}
                   onClose={handleCloseEditor}
                   onTagCreated={handleTagCreate}
+                  onSendToDaily={handleSendToDaily}
+                  isSendingToDaily={sendingToDaily}
+                  isSentToDaily={sentToDaily}
                 />
               ) : (
                 <div className="h-full flex flex-col items-center justify-center text-gray-400 gap-4">

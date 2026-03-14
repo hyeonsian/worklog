@@ -30,6 +30,9 @@ interface EntryEditorProps {
   onDelete: (id: string) => Promise<void>;
   onClose: () => void;
   onTagCreated?: (name: string) => Promise<unknown>;
+  onSendToDaily?: (title: string, date: string, meetingTime: string) => Promise<void>;
+  isSendingToDaily?: boolean;
+  isSentToDaily?: boolean;
 }
 
 const SECTION_TO_TYPE: Record<Section, EntryType | null> = {
@@ -54,6 +57,9 @@ export default function EntryEditor({
   onDelete,
   onClose,
   onTagCreated,
+  onSendToDaily,
+  isSendingToDaily = false,
+  isSentToDaily = false,
 }: EntryEditorProps) {
   const [title, setTitle] = useState(entry?.title || "");
   const [content, setContent] = useState(entry?.content || "");
@@ -78,8 +84,6 @@ export default function EntryEditor({
   const [showTagPicker, setShowTagPicker] = useState(false);
   const [newTagName, setNewTagName] = useState("");
   const [deleting, setDeleting] = useState(false);
-  const [sendingToDaily, setSendingToDaily] = useState(false);
-  const [sentToDaily, setSentToDaily] = useState(false);
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dateInputRef = useRef<HTMLInputElement>(null);
   const timeInputRef = useRef<HTMLInputElement>(null);
@@ -103,7 +107,6 @@ export default function EntryEditor({
     }
     setSaved(false);
     setIsEditing(false);
-    setSentToDaily(false);
   }, [entry?.id]);
 
   const handleSave = useCallback(async () => {
@@ -181,50 +184,6 @@ export default function EntryEditor({
       }
     } catch (e) {
       console.error(e);
-    }
-  };
-
-  const handleSendToDaily = async () => {
-    if (!entry?.id) return;
-    setSendingToDaily(true);
-    try {
-      // '회의' 태그 찾기 or 생성
-      let meetingTag = tags.find((t) => t.name === "회의");
-      if (!meetingTag) {
-        const createRes = await fetch("/api/tags", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: "회의", color: "#8b5cf6" }),
-        });
-        if (createRes.ok) meetingTag = await createRes.json();
-      }
-
-      // 카드 날짜 및 시작 시간 계산
-      const entryDate = new Date(entry.date || date);
-      const cardDate = format(entryDate, "yyyy-MM-dd");
-      const rawTime = meetingTime || (entry.date ? format(new Date(entry.date), "HH:mm") : "");
-      const cardStartTime = rawTime === "00:00" ? undefined : rawTime || undefined;
-
-      const res = await fetch("/api/daily-cards", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: title || entry.title,
-          date: cardDate,
-          startTime: cardStartTime,
-          slot: "WORK",
-          tagIds: meetingTag ? [meetingTag.id] : [],
-        }),
-      });
-
-      if (res.ok) {
-        setSentToDaily(true);
-        setTimeout(() => setSentToDaily(false), 3000);
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setSendingToDaily(false);
     }
   };
 
@@ -366,14 +325,14 @@ export default function EntryEditor({
           </div>
 
           {/* 업무일지로 보내기 (회의록 전용) */}
-          {section === "MEETING" && !isNew && (
+          {section === "MEETING" && !isNew && onSendToDaily && (
             <button
-              onClick={handleSendToDaily}
-              disabled={sendingToDaily}
+              onClick={() => onSendToDaily(title, date, meetingTime)}
+              disabled={isSendingToDaily}
               className="flex items-center gap-1.5 text-xs font-medium text-violet-600 hover:text-violet-700 bg-violet-50 hover:bg-violet-100 disabled:opacity-50 px-3 py-1.5 rounded-md transition-colors"
             >
               <Send className="w-3.5 h-3.5" />
-              {sendingToDaily ? "전송 중..." : "업무일지로"}
+              {isSendingToDaily ? "전송 중..." : "업무일지로"}
             </button>
           )}
 
@@ -422,7 +381,7 @@ export default function EntryEditor({
       </div>
 
       {/* 업무일지 전송 성공 토스트 */}
-      {sentToDaily && (
+      {isSentToDaily && (
         <div className="flex items-center gap-2 px-6 py-2.5 bg-green-50 border-b border-green-100 flex-shrink-0">
           <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
           <p className="text-xs text-green-700 font-medium">
