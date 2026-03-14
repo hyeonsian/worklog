@@ -10,7 +10,8 @@ import EntryList from "@/components/EntryList";
 import EntryEditor from "@/components/EntryEditor";
 import TodoList from "@/components/TodoList";
 import DailyWeekView from "@/components/DailyWeekView";
-import type { Entry, Todo, Tag, Section } from "@/types";
+import CalDAVSettingsModal from "@/components/CalDAVSettings";
+import type { Entry, Todo, Tag, Section, CalDAVSettingsInfo } from "@/types";
 
 const SECTION_MAP: Record<string, Section> = {
   daily: "DAILY",
@@ -59,6 +60,16 @@ export default function SectionPage({
   const [loadingTodos, setLoadingTodos] = useState(false);
   const [sendingToDaily, setSendingToDaily] = useState(false);
   const [sentToDaily, setSentToDaily] = useState(false);
+  const [showCalDAVModal, setShowCalDAVModal] = useState(false);
+  const [caldavSettings, setCaldavSettings] = useState<CalDAVSettingsInfo | null>(null);
+
+  // Load CalDAV settings
+  useEffect(() => {
+    fetch("/api/caldav/settings")
+      .then((r) => r.json())
+      .then((data) => { if (data?.id) setCaldavSettings(data); })
+      .catch(() => {});
+  }, []);
 
   // Persist sidebar collapsed state
   useEffect(() => {
@@ -449,6 +460,8 @@ export default function SectionPage({
         onTagToggle={handleTagToggle}
         onTagCreate={handleTagCreate}
         onTagDelete={handleTagDelete}
+        onOpenCalDAV={() => setShowCalDAVModal(true)}
+        caldavConnected={!!caldavSettings?.calendarUrl}
       />
 
       {/* Main content */}
@@ -458,7 +471,7 @@ export default function SectionPage({
       >
         {selectedSection === "DAILY" ? (
           <div className="flex-1 overflow-hidden">
-            <DailyWeekView tags={tags} selectedTags={selectedTags} />
+            <DailyWeekView tags={tags} selectedTags={selectedTags} caldavEnabled={!!caldavSettings?.calendarUrl && caldavSettings?.enabled} />
           </div>
         ) : selectedSection === "TODO" ? (
           <div className="flex-1 overflow-hidden">
@@ -530,6 +543,13 @@ export default function SectionPage({
           </>
         )}
       </main>
+
+      {/* CalDAV Settings Modal */}
+      <CalDAVSettingsModal
+        open={showCalDAVModal}
+        onClose={() => setShowCalDAVModal(false)}
+        onSettingsChange={(s) => setCaldavSettings(s)}
+      />
     </div>
   );
 }

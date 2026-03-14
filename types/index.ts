@@ -79,3 +79,34 @@ export interface Todo {
 export type Section = "DAILY" | "MEETING" | "TODO" | "MEMO";
 
 export type TodoPriority = "HIGH" | "MEDIUM" | "LOW";
+
+// CalDAV
+export interface CalDAVSettingsInfo {
+  id: string;
+  serverUrl: string;
+  username: string;
+  calendarUrl: string | null;
+  calendarName: string | null;
+  enabled: boolean;
+  hasPassword: boolean;
+}
+
+export interface CalDAVCalendarInfo {
+  url: string;
+  displayName: string;
+  description?: string;
+  color?: string;
+}
+
+export interface CalDAVEvent {
+  uid: string;
+  url: string;
+  etag: string;
+  title: string;
+  description?: string;
+  location?: string;
+  start: string;
+  end: string;
+  allDay: boolean;
+  color?: string;
+}

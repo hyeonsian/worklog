@@ -13,8 +13,8 @@ import {
   parseISO,
 } from "date-fns";
 import { ko } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, Plus, FileText, BookOpen } from "lucide-react";
-import type { DailyCard, DailySlot, DailyReflection, Tag } from "@/types";
+import { ChevronLeft, ChevronRight, Plus, FileText, BookOpen, MapPin } from "lucide-react";
+import type { DailyCard, DailySlot, DailyReflection, Tag, CalDAVEvent } from "@/types";
 import CardModal from "./CardModal";
 import ReflectionModal from "./ReflectionModal";
 
@@ -28,12 +28,14 @@ const DAY_LABELS = ["월", "화", "수", "목", "금", "토", "일"];
 interface DailyWeekViewProps {
   tags: Tag[];
   selectedTags: string[];
+  caldavEnabled?: boolean;
 }
 
-export default function DailyWeekView({ tags, selectedTags }: DailyWeekViewProps) {
+export default function DailyWeekView({ tags, selectedTags, caldavEnabled }: DailyWeekViewProps) {
   const [weekBase, setWeekBase] = useState(new Date());
   const [cards, setCards] = useState<DailyCard[]>([]);
   const [reflections, setReflections] = useState<DailyReflection[]>([]);
+  const [calEvents, setCalEvents] = useState<CalDAVEvent[]>([]);
   const [modal, setModal] = useState<{ card: Partial<DailyCard>; isNew: boolean } | null>(null);
   const [reflectionDay, setReflectionDay] = useState<Date | null>(null);
   const [dropTarget, setDropTarget] = useState<string | null>(null);
@@ -63,7 +65,29 @@ export default function DailyWeekView({ tags, selectedTags }: DailyWeekViewProps
     }
   }, [weekStart.toISOString()]);
 
+  // Load CalDAV events
+  const loadCalEvents = useCallback(async () => {
+    if (!caldavEnabled) { setCalEvents([]); return; }
+    try {
+      const params = new URLSearchParams({
+        start: weekStart.toISOString(),
+        end: weekEnd.toISOString(),
+      });
+      const res = await fetch(`/api/caldav/events?${params}`);
+      if (res.ok) setCalEvents(await res.json());
+    } catch (e) {
+      console.error("CalDAV fetch error:", e);
+    }
+  }, [weekStart.toISOString(), caldavEnabled]);
+
   useEffect(() => { loadAll(); }, [loadAll]);
+  useEffect(() => { loadCalEvents(); }, [loadCalEvents]);
+
+  const calEventsFor = (day: Date) =>
+    calEvents.filter((ev) => {
+      const evDate = ev.start.slice(0, 10);
+      return evDate === format(day, "yyyy-MM-dd");
+    });
 
   const allCardsFor = (day: Date, slot: DailySlot) =>
     cards
@@ -318,6 +342,17 @@ export default function DailyWeekView({ tags, selectedTags }: DailyWeekViewProps
 
                 {/* Slots */}
                 <div className="flex-1 overflow-y-auto divide-y divide-gray-50">
+                  {/* Apple Calendar events */}
+                  {caldavEnabled && calEventsFor(day).length > 0 && (
+                    <div className="p-2 bg-blue-50/30">
+                      <span className="text-[10px] font-semibold text-blue-400 tracking-wide mb-1 block">🍎 캘린더</span>
+                      <div className="space-y-1">
+                        {calEventsFor(day).map((ev) => (
+                          <CalEventItem key={ev.uid} event={ev} />
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   {SLOTS.map(({ key, label, emptyColor }) => {
                     const slotCards = cardsFor(day, key);
                     const isTomorrow = key === "TOMORROW";
@@ -454,6 +489,29 @@ function CardItem({ card, isDragging, onDragStart, onDragEnd, onDragOver, onClic
             <span className="px-1.5 py-0.5 rounded-full text-[9px] font-medium text-gray-400 bg-gray-100">+{card.tags.length - 2}</span>
           )}
         </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Apple Calendar 이벤트 ── */
+function CalEventItem({ event }: { event: CalDAVEvent }) {
+  const time = event.allDay
+    ? "종일"
+    : `${event.start.slice(11, 16)}${event.end ? ` → ${event.end.slice(11, 16)}` : ""}`;
+  return (
+    <div className="w-full text-left bg-white/80 border border-blue-100 rounded-lg px-2 py-1.5 select-none">
+      <div className="flex items-start gap-1">
+        <span className="text-xs font-medium text-blue-700 leading-tight line-clamp-1 flex-1">
+          {event.title}
+        </span>
+      </div>
+      <p className="text-[10px] text-blue-400 mt-0.5 font-mono">{time}</p>
+      {event.location && (
+        <p className="text-[10px] text-gray-400 mt-0.5 flex items-center gap-0.5 line-clamp-1">
+          <MapPin size={8} className="flex-shrink-0" />
+          {event.location}
+        </p>
       )}
     </div>
   );

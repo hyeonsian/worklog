@@ -18,6 +18,21 @@ model User {
   todos            Todo[]
   dailyCards       DailyCard[]
   dailyReflections DailyReflection[]
+  caldavSettings   CalDAVSettings?
+}
+
+model CalDAVSettings {
+  id           String  @id @default(cuid())
+  userId       String  @unique
+  user         User    @relation(fields: [userId], references: [id])
+  serverUrl    String  @default("https://caldav.icloud.com")
+  username     String  // Apple ID email
+  password     String  // App-specific password
+  calendarUrl  String? // Selected calendar URL
+  calendarName String? // Selected calendar display name
+  enabled      Boolean @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 model Entry {

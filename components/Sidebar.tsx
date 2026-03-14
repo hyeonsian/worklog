@@ -16,6 +16,7 @@ import {
   Plus,
   X,
   Check,
+  Cloud,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
@@ -38,6 +39,8 @@ interface SidebarProps {
   onTagToggle: (tagName: string) => void;
   onTagCreate?: (name: string) => Promise<unknown>;
   onTagDelete?: (id: string) => void;
+  onOpenCalDAV?: () => void;
+  caldavConnected?: boolean;
 }
 
 const NAV_ITEMS: { label: string; section: Section; icon: React.ReactNode }[] = [
@@ -64,6 +67,8 @@ export default function Sidebar({
   onTagToggle,
   onTagCreate,
   onTagDelete,
+  onOpenCalDAV,
+  caldavConnected,
 }: SidebarProps) {
   const { data: session } = useSession();
   const [showTags, setShowTags] = useState(true);
@@ -258,7 +263,25 @@ export default function Sidebar({
       )}
 
       {/* ── Footer ── */}
-      <div className="border-t border-gray-200 p-3 flex-shrink-0">
+      <div className="border-t border-gray-200 p-3 flex-shrink-0 space-y-1">
+        {onOpenCalDAV && (
+          <button
+            onClick={onOpenCalDAV}
+            title="Apple 캘린더 연동"
+            className={clsx(
+              "flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors",
+              collapsed ? "w-full justify-center py-2" : "w-full px-3 py-2"
+            )}
+          >
+            <Cloud className={clsx("w-4 h-4 flex-shrink-0", caldavConnected && "text-blue-500")} />
+            {!collapsed && (
+              <span className="flex items-center gap-1.5">
+                캘린더 연동
+                {caldavConnected && <span className="w-1.5 h-1.5 rounded-full bg-green-400" />}
+              </span>
+            )}
+          </button>
+        )}
         <button
           onClick={() => signOut({ callbackUrl: "/login" })}
           title="로그아웃"
