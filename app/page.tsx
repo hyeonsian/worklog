@@ -225,12 +225,12 @@ export default function HomePage() {
   };
 
   // Todo handlers
-  const handleAddTodo = async (title: string, dueDate?: string) => {
+  const handleAddTodo = async (title: string, options: { dueDate?: string; priority?: string; tagIds?: string[] }) => {
     try {
       const res = await fetch("/api/todos", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, dueDate }),
+        body: JSON.stringify({ title, ...options }),
       });
       if (res.ok) {
         const created = await res.json();

@@ -69,6 +69,7 @@ export interface Todo {
   title: string;
   done: boolean;
   dueDate: string | null;
+  priority: TodoPriority;
   createdAt: string;
   updatedAt: string;
   userId: string;
@@ -76,3 +77,5 @@ export interface Todo {
 }
 
 export type Section = "DAILY" | "MEETING" | "TODO" | "MEMO";
+
+export type TodoPriority = "HIGH" | "MEDIUM" | "LOW";

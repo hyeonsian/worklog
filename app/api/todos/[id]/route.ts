@@ -13,7 +13,7 @@ export async function PUT(
   }
 
   const body = await request.json();
-  const { title, done, dueDate, tagIds } = body;
+  const { title, done, dueDate, tagIds, priority } = body;
 
   const existing = await prisma.todo.findFirst({
     where: { id: params.id, userId: session.user.id },
@@ -35,6 +35,7 @@ export async function PUT(
       ...(dueDate !== undefined && {
         dueDate: dueDate ? new Date(dueDate) : null,
       }),
+      ...(priority !== undefined && { priority }),
       ...(tagIds !== undefined && tagIds.length > 0
         ? {
             tags: {

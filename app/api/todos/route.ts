@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { title, dueDate, tagIds } = body;
+  const { title, dueDate, tagIds, priority } = body;
 
   if (!title) {
     return NextResponse.json({ error: "title is required" }, { status: 400 });
@@ -62,6 +62,7 @@ export async function POST(request: NextRequest) {
     data: {
       title,
       dueDate: dueDate ? new Date(dueDate) : undefined,
+      priority: priority || "MEDIUM",
       userId: session.user.id,
       tags: tagIds?.length
         ? {
