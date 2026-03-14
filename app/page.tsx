@@ -53,8 +53,8 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
-    if (session) loadTags();
-  }, [session, loadTags]);
+    if (session?.user?.id) loadTags();
+  }, [session?.user?.id, loadTags]);
 
   // Load entries
   const loadEntries = useCallback(async () => {
@@ -87,11 +87,11 @@ export default function HomePage() {
   }, [selectedSection, selectedDate, search, selectedTags]);
 
   useEffect(() => {
-    if (session && selectedSection !== "TODO") {
+    if (session?.user?.id && selectedSection !== "TODO") {
       loadEntries();
       setSelectedEntry(null);
     }
-  }, [selectedSection, selectedDate, search, selectedTags, session]);
+  }, [selectedSection, selectedDate, search, selectedTags, session?.user?.id]);
 
   // Load todos
   const loadTodos = useCallback(async () => {
@@ -115,10 +115,10 @@ export default function HomePage() {
   }, [selectedSection, selectedTags]);
 
   useEffect(() => {
-    if (session && selectedSection === "TODO") {
+    if (session?.user?.id && selectedSection === "TODO") {
       loadTodos();
     }
-  }, [selectedSection, selectedTags, session]);
+  }, [selectedSection, selectedTags, session?.user?.id]);
 
   const handleTagToggle = (tagName: string) => {
     setSelectedTags((prev) =>
@@ -126,6 +126,43 @@ export default function HomePage() {
         ? prev.filter((t) => t !== tagName)
         : [...prev, tagName]
     );
+  };
+
+  const handleTagCreate = async (name: string) => {
+    try {
+      const res = await fetch("/api/tags", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      if (res.ok) {
+        const newTag = await res.json();
+        setTags((prev) =>
+          prev.find((t) => t.id === newTag.id)
+            ? prev
+            : [...prev, newTag].sort((a, b) => a.name.localeCompare(b.name))
+        );
+        return newTag;
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return null;
+  };
+
+  const handleTagDelete = async (id: string) => {
+    try {
+      const res = await fetch(`/api/tags/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        const deleted = tags.find((t) => t.id === id);
+        setTags((prev) => prev.filter((t) => t.id !== id));
+        if (deleted) {
+          setSelectedTags((prev) => prev.filter((name) => name !== deleted.name));
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   const handleSectionChange = (section: Section) => {
@@ -309,6 +346,8 @@ export default function HomePage() {
         tags={tags}
         selectedTags={selectedTags}
         onTagToggle={handleTagToggle}
+        onTagCreate={handleTagCreate}
+        onTagDelete={handleTagDelete}
       />
 
       {/* Main content */}
@@ -363,6 +402,7 @@ export default function HomePage() {
                   onSave={handleSaveEntry}
                   onDelete={handleDeleteEntry}
                   onClose={handleCloseEditor}
+                  onTagCreated={handleTagCreate}
                 />
               ) : (
                 <div className="h-full flex flex-col items-center justify-center text-gray-400 gap-4">

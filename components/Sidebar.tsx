@@ -13,6 +13,9 @@ import {
   Tag as TagIcon,
   PanelLeftClose,
   PanelLeftOpen,
+  Plus,
+  X,
+  Check,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
@@ -33,6 +36,8 @@ interface SidebarProps {
   tags: Tag[];
   selectedTags: string[];
   onTagToggle: (tagName: string) => void;
+  onTagCreate?: (name: string) => Promise<unknown>;
+  onTagDelete?: (id: string) => void;
 }
 
 const NAV_ITEMS: { label: string; section: Section; icon: React.ReactNode }[] = [
@@ -57,9 +62,20 @@ export default function Sidebar({
   tags,
   selectedTags,
   onTagToggle,
+  onTagCreate,
+  onTagDelete,
 }: SidebarProps) {
   const { data: session } = useSession();
   const [showTags, setShowTags] = useState(true);
+  const [addingTag, setAddingTag] = useState(false);
+  const [newTagName, setNewTagName] = useState("");
+
+  const handleCreateTag = async () => {
+    if (!newTagName.trim() || !onTagCreate) return;
+    await onTagCreate(newTagName.trim());
+    setNewTagName("");
+    setAddingTag(false);
+  };
 
   return (
     <aside
@@ -161,34 +177,79 @@ export default function Sidebar({
 
           {/* Tags */}
           <div className="py-2">
-            <button
-              onClick={() => setShowTags((v) => !v)}
-              className="w-full flex items-center justify-between px-4 py-1"
-            >
-              <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
-                <TagIcon className="w-3 h-3" />
-                태그
-              </span>
-              <ChevronDown className={clsx("w-3 h-3 text-gray-400 transition-transform", showTags ? "rotate-0" : "-rotate-90")} />
-            </button>
+            <div className="flex items-center justify-between px-4 py-1">
+              <button
+                onClick={() => setShowTags((v) => !v)}
+                className="flex items-center gap-1.5"
+              >
+                <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <TagIcon className="w-3 h-3" />
+                  태그
+                </span>
+                <ChevronDown className={clsx("w-3 h-3 text-gray-400 transition-transform", showTags ? "rotate-0" : "-rotate-90")} />
+              </button>
+              {onTagCreate && (
+                <button
+                  onClick={() => { setAddingTag(true); setShowTags(true); }}
+                  className="w-4 h-4 flex items-center justify-center rounded text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 transition-colors"
+                  title="태그 추가"
+                >
+                  <Plus className="w-3 h-3" />
+                </button>
+              )}
+            </div>
 
             {showTags && (
               <div className="px-4 py-1 flex flex-wrap gap-1.5">
                 {tags.map((tag) => (
-                  <button
-                    key={tag.id}
-                    onClick={() => onTagToggle(tag.name)}
-                    className={clsx(
-                      "tag-chip transition-all",
-                      selectedTags.includes(tag.name) ? "opacity-100 ring-2 ring-offset-1" : "opacity-70 hover:opacity-100"
+                  <div key={tag.id} className="group relative inline-flex items-center">
+                    <button
+                      onClick={() => onTagToggle(tag.name)}
+                      className={clsx(
+                        "tag-chip transition-all",
+                        selectedTags.includes(tag.name) ? "opacity-100 ring-2 ring-offset-1" : "opacity-70 hover:opacity-100",
+                        onTagDelete ? "pr-5" : ""
+                      )}
+                      style={{ backgroundColor: tag.color + "22", color: tag.color }}
+                    >
+                      {tag.name}
+                    </button>
+                    {onTagDelete && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onTagDelete(tag.id); }}
+                        className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-70 hover:!opacity-100 flex items-center justify-center transition-opacity"
+                        style={{ color: tag.color }}
+                        title="태그 삭제"
+                      >
+                        <X className="w-2.5 h-2.5" />
+                      </button>
                     )}
-                    style={{ backgroundColor: tag.color + "22", color: tag.color }}
-                  >
-                    {tag.name}
-                  </button>
+                  </div>
                 ))}
-                {tags.length === 0 && (
+                {tags.length === 0 && !addingTag && (
                   <p className="text-xs text-gray-400 px-1">태그 없음</p>
+                )}
+                {addingTag && (
+                  <div className="flex items-center gap-1 w-full mt-1">
+                    <input
+                      autoFocus
+                      type="text"
+                      value={newTagName}
+                      onChange={(e) => setNewTagName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleCreateTag();
+                        if (e.key === "Escape") { setAddingTag(false); setNewTagName(""); }
+                      }}
+                      placeholder="태그 이름..."
+                      className="flex-1 text-xs px-2 py-1 border border-gray-200 rounded focus:ring-1 focus:ring-indigo-400 min-w-0"
+                    />
+                    <button onClick={handleCreateTag} className="text-indigo-500 hover:bg-indigo-50 p-1 rounded flex-shrink-0">
+                      <Check className="w-3 h-3" />
+                    </button>
+                    <button onClick={() => { setAddingTag(false); setNewTagName(""); }} className="text-gray-400 hover:bg-gray-100 p-1 rounded flex-shrink-0">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
                 )}
               </div>
             )}

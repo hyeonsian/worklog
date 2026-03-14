@@ -29,6 +29,7 @@ interface EntryEditorProps {
   onSave: (data: Partial<Entry>) => Promise<Entry | null>;
   onDelete: (id: string) => Promise<void>;
   onClose: () => void;
+  onTagCreated?: (name: string) => Promise<unknown>;
 }
 
 const SECTION_TO_TYPE: Record<Section, EntryType | null> = {
@@ -52,6 +53,7 @@ export default function EntryEditor({
   onSave,
   onDelete,
   onClose,
+  onTagCreated,
 }: EntryEditorProps) {
   const [title, setTitle] = useState(entry?.title || "");
   const [content, setContent] = useState(entry?.content || "");
@@ -173,6 +175,7 @@ export default function EntryEditor({
         const tag = await res.json();
         setSelectedTagIds((prev) => [...prev, tag.id]);
         setNewTagName("");
+        onTagCreated?.(newTagName.trim());
       }
     } catch (e) {
       console.error(e);
