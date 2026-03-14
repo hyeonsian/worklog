@@ -10,8 +10,6 @@ import {
   Tag as TagIcon,
   Check,
   CheckSquare,
-  ChevronDown,
-  ChevronRight,
 } from "lucide-react";
 import clsx from "clsx";
 import type { Todo, Tag, TodoPriority } from "@/types";
@@ -68,10 +66,6 @@ export default function TodoList({
   const [newTitle, setNewTitle] = useState("");
   const [newDueDate, setNewDueDate] = useState("");
   const [newTagIds, setNewTagIds] = useState<string[]>([]);
-  const [collapsed, setCollapsed] = useState<Record<TodoPriority, boolean>>({
-    HIGH: false, MEDIUM: false, LOW: false,
-  });
-
   const handleAdd = async () => {
     if (!newTitle.trim() || !addingTo) return;
     await onAdd(newTitle.trim(), {
@@ -90,7 +84,6 @@ export default function TodoList({
     setNewTitle("");
     setNewDueDate("");
     setNewTagIds([]);
-    setCollapsed((prev) => ({ ...prev, [priority]: false }));
   };
 
   const todoCount = todos.filter((t) => !t.done).length;
@@ -131,8 +124,8 @@ export default function TodoList({
         </div>
       </div>
 
-      {/* Sections */}
-      <div className="flex-1 overflow-y-auto">
+      {/* Columns */}
+      <div className="flex-1 overflow-hidden">
         {loading ? (
           <div className="p-4 space-y-3">
             {[...Array(5)].map((_, i) => (
@@ -143,41 +136,34 @@ export default function TodoList({
             ))}
           </div>
         ) : (
-          visiblePriorities.map((priority) => {
-            const config = PRIORITY_CONFIG[priority];
-            const sectionTodos = todos.filter((t) => t.priority === priority);
-            const remaining = sectionTodos.filter((t) => !t.done).length;
-            const isCollapsed = collapsed[priority];
-            const isAdding = addingTo === priority;
+          <div className="flex h-full divide-x divide-gray-100">
+            {visiblePriorities.map((priority) => {
+              const config = PRIORITY_CONFIG[priority];
+              const sectionTodos = todos.filter((t) => t.priority === priority);
+              const remaining = sectionTodos.filter((t) => !t.done).length;
+              const isAdding = addingTo === priority;
 
-            return (
-              <section key={priority} className="border-b border-gray-100 last:border-b-0">
-                {/* Section header */}
-                <div className={clsx("flex items-center justify-between px-5 py-2.5", config.headerBg)}>
-                  <button
-                    onClick={() => setCollapsed((prev) => ({ ...prev, [priority]: !prev[priority] }))}
-                    className="flex items-center gap-2"
-                  >
-                    {isCollapsed
-                      ? <ChevronRight size={14} className="text-gray-400" />
-                      : <ChevronDown size={14} className="text-gray-400" />
-                    }
-                    <span className={clsx("w-2 h-2 rounded-full flex-shrink-0", config.dotColor)} />
-                    <span className={clsx("text-xs font-semibold", config.textColor)}>{config.label}</span>
-                    <span className="text-xs text-gray-400">
-                      {remaining > 0 ? `${remaining}개 남음` : sectionTodos.length > 0 ? "모두 완료 ✓" : ""}
-                    </span>
-                  </button>
-                  <button
-                    onClick={() => startAdding(priority)}
-                    className="w-6 h-6 flex items-center justify-center rounded text-gray-400 hover:text-indigo-500 hover:bg-white/70 transition-colors"
-                  >
-                    <Plus size={14} />
-                  </button>
-                </div>
+              return (
+                <div key={priority} className="flex flex-col flex-1 min-w-0 overflow-hidden">
+                  {/* Column header */}
+                  <div className={clsx("flex items-center justify-between px-4 py-3 flex-shrink-0", config.headerBg)}>
+                    <div className="flex items-center gap-2">
+                      <span className={clsx("w-2 h-2 rounded-full flex-shrink-0", config.dotColor)} />
+                      <span className={clsx("text-xs font-semibold", config.textColor)}>{config.label}</span>
+                      <span className="text-xs text-gray-400">
+                        {remaining > 0 ? `${remaining}` : sectionTodos.length > 0 ? "✓" : ""}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => startAdding(priority)}
+                      className="w-6 h-6 flex items-center justify-center rounded text-gray-400 hover:text-indigo-500 hover:bg-white/70 transition-colors"
+                    >
+                      <Plus size={14} />
+                    </button>
+                  </div>
 
-                {!isCollapsed && (
-                  <>
+                  {/* Column body */}
+                  <div className="flex-1 overflow-y-auto">
                     <ul>
                       {sectionTodos.map((todo) => (
                         <TodoItem
@@ -190,13 +176,13 @@ export default function TodoList({
                         />
                       ))}
                       {sectionTodos.length === 0 && !isAdding && (
-                        <li className="px-5 py-3 text-xs text-gray-300 italic">할일이 없습니다</li>
+                        <li className="px-4 py-4 text-xs text-gray-300 italic text-center">할일이 없습니다</li>
                       )}
                     </ul>
 
                     {/* Inline add form */}
                     {isAdding && (
-                      <div className={clsx("px-5 py-3 border-t", config.borderColor, config.addBg)}>
+                      <div className={clsx("p-3 border-t", config.borderColor, config.addBg)}>
                         <input
                           autoFocus
                           type="text"
@@ -206,49 +192,47 @@ export default function TodoList({
                             if (e.key === "Enter") handleAdd();
                             if (e.key === "Escape") setAddingTo(null);
                           }}
-                          placeholder="할일을 입력하세요..."
-                          className="w-full text-sm bg-transparent border-none focus:ring-0 placeholder:text-gray-400 mb-2.5"
+                          placeholder="할일 입력..."
+                          className="w-full text-sm bg-transparent border-none focus:ring-0 placeholder:text-gray-400 mb-2"
                         />
-                        <div className="flex items-center justify-between gap-2 flex-wrap">
-                          <div className="flex items-center gap-2">
-                            <div className="flex items-center gap-1.5 border border-gray-200 rounded-md px-2 py-1 bg-white">
-                              <Calendar size={11} className="text-gray-400" />
-                              <input
-                                type="date"
-                                value={newDueDate}
-                                onChange={(e) => setNewDueDate(e.target.value)}
-                                className="text-xs text-gray-500 bg-transparent border-none focus:ring-0 w-[105px]"
-                              />
-                            </div>
-                            <TagPickerDropdown
-                              tags={tags}
-                              selectedIds={newTagIds}
-                              onChange={setNewTagIds}
+                        <div className="flex items-center gap-1.5 mb-2 flex-wrap">
+                          <div className="flex items-center gap-1 border border-gray-200 rounded-md px-1.5 py-1 bg-white">
+                            <Calendar size={11} className="text-gray-400" />
+                            <input
+                              type="date"
+                              value={newDueDate}
+                              onChange={(e) => setNewDueDate(e.target.value)}
+                              className="text-xs text-gray-500 bg-transparent border-none focus:ring-0 w-[95px]"
                             />
                           </div>
-                          <div className="flex items-center gap-1.5">
-                            <button
-                              onClick={() => setAddingTo(null)}
-                              className="text-xs text-gray-400 hover:text-gray-600 px-2 py-1 rounded"
-                            >
-                              취소
-                            </button>
-                            <button
-                              onClick={handleAdd}
-                              disabled={!newTitle.trim()}
-                              className="text-xs font-medium text-white bg-indigo-500 hover:bg-indigo-600 disabled:bg-gray-300 px-3 py-1.5 rounded-md transition-colors"
-                            >
-                              추가
-                            </button>
-                          </div>
+                          <TagPickerDropdown
+                            tags={tags}
+                            selectedIds={newTagIds}
+                            onChange={setNewTagIds}
+                          />
+                        </div>
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            onClick={() => setAddingTo(null)}
+                            className="text-xs text-gray-400 hover:text-gray-600 px-2 py-1 rounded"
+                          >
+                            취소
+                          </button>
+                          <button
+                            onClick={handleAdd}
+                            disabled={!newTitle.trim()}
+                            className="text-xs font-medium text-white bg-indigo-500 hover:bg-indigo-600 disabled:bg-gray-300 px-3 py-1.5 rounded-md transition-colors"
+                          >
+                            추가
+                          </button>
                         </div>
                       </div>
                     )}
-                  </>
-                )}
-              </section>
-            );
-          })
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         )}
       </div>
 
