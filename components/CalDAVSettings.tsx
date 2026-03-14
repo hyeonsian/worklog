@@ -88,7 +88,14 @@ export default function CalDAVSettingsModal({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
       });
-      const data = await res.json();
+      const text = await res.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        setError(`서버 응답 오류 (${res.status}): ${text.slice(0, 200) || "빈 응답"}`);
+        return;
+      }
       if (!res.ok) {
         setError(data.error || "연결에 실패했습니다.");
         return;
