@@ -8,11 +8,13 @@ import {
   Trash2,
   Tag as TagIcon,
   Calendar,
+  Clock,
   Check,
   X,
   Plus,
   ChevronDown,
   Pencil,
+  Send,
 } from "lucide-react";
 import clsx from "clsx";
 import type { Entry, Tag, EntryType, Section } from "@/types";
@@ -61,12 +63,21 @@ export default function EntryEditor({
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>(
     entry?.tags?.map((et) => et.tag.id) || []
   );
+  const [meetingTime, setMeetingTime] = useState(() => {
+    if (section === "MEETING" && entry?.date) {
+      const t = format(new Date(entry.date), "HH:mm");
+      return t === "00:00" ? "" : t;
+    }
+    return "";
+  });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [showTagPicker, setShowTagPicker] = useState(false);
   const [newTagName, setNewTagName] = useState("");
   const [deleting, setDeleting] = useState(false);
+  const [sendingToDaily, setSendingToDaily] = useState(false);
+  const [sentToDaily, setSentToDaily] = useState(false);
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isNew = !entry?.id;
 
@@ -80,8 +91,15 @@ export default function EntryEditor({
         : format(selectedDate, "yyyy-MM-dd")
     );
     setSelectedTagIds(entry?.tags?.map((et) => et.tag.id) || []);
+    if (section === "MEETING" && entry?.date) {
+      const t = format(new Date(entry.date), "HH:mm");
+      setMeetingTime(t === "00:00" ? "" : t);
+    } else {
+      setMeetingTime("");
+    }
     setSaved(false);
     setIsEditing(false);
+    setSentToDaily(false);
   }, [entry?.id]);
 
   const handleSave = useCallback(async () => {
@@ -90,12 +108,16 @@ export default function EntryEditor({
     try {
       const type = SECTION_TO_TYPE[section];
       if (!type) return;
+      const dateWithTime =
+        section === "MEETING" && meetingTime
+          ? new Date(`${date}T${meetingTime}`).toISOString()
+          : new Date(date).toISOString();
       await onSave({
         id: entry?.id,
         title: title.trim(),
         content,
         type,
-        date: new Date(date).toISOString(),
+        date: dateWithTime,
         tags: selectedTagIds.map((id) => ({
           entryId: entry?.id || "",
           tagId: id,
@@ -120,7 +142,7 @@ export default function EntryEditor({
     return () => {
       if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
     };
-  }, [title, content, date, selectedTagIds]);
+  }, [title, content, date, meetingTime, selectedTagIds]);
 
   const handleDelete = async () => {
     if (!entry?.id) return;
@@ -157,6 +179,50 @@ export default function EntryEditor({
     }
   };
 
+  const handleSendToDaily = async () => {
+    if (!entry?.id) return;
+    setSendingToDaily(true);
+    try {
+      // '회의' 태그 찾기 or 생성
+      let meetingTag = tags.find((t) => t.name === "회의");
+      if (!meetingTag) {
+        const createRes = await fetch("/api/tags", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: "회의", color: "#8b5cf6" }),
+        });
+        if (createRes.ok) meetingTag = await createRes.json();
+      }
+
+      // 카드 날짜 및 시작 시간 계산
+      const entryDate = new Date(entry.date || date);
+      const cardDate = format(entryDate, "yyyy-MM-dd");
+      const rawTime = meetingTime || (entry.date ? format(new Date(entry.date), "HH:mm") : "");
+      const cardStartTime = rawTime === "00:00" ? undefined : rawTime || undefined;
+
+      const res = await fetch("/api/daily-cards", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: title || entry.title,
+          date: cardDate,
+          startTime: cardStartTime,
+          slot: "WORK",
+          tagIds: meetingTag ? [meetingTag.id] : [],
+        }),
+      });
+
+      if (res.ok) {
+        setSentToDaily(true);
+        setTimeout(() => setSentToDaily(false), 3000);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSendingToDaily(false);
+    }
+  };
+
   const selectedTags = tags.filter((t) => selectedTagIds.includes(t.id));
 
   return (
@@ -187,6 +253,19 @@ export default function EntryEditor({
               className="text-xs text-gray-600 bg-transparent border-none focus:ring-0 cursor-pointer"
             />
           </div>
+
+          {/* Time (회의록 전용) */}
+          {section === "MEETING" && (
+            <div className="flex items-center gap-1.5 text-xs text-gray-500">
+              <Clock className="w-3.5 h-3.5" />
+              <input
+                type="time"
+                value={meetingTime}
+                onChange={(e) => setMeetingTime(e.target.value)}
+                className="text-xs text-gray-600 bg-transparent border-none focus:ring-0 cursor-pointer"
+              />
+            </div>
+          )}
 
           {/* Tag picker */}
           <div className="relative">
@@ -253,6 +332,23 @@ export default function EntryEditor({
               </div>
             )}
           </div>
+
+          {/* 업무일지로 보내기 (회의록 전용) */}
+          {section === "MEETING" && !isNew && (
+            <button
+              onClick={handleSendToDaily}
+              disabled={sendingToDaily || sentToDaily}
+              className={clsx(
+                "flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md transition-colors",
+                sentToDaily
+                  ? "text-green-600 bg-green-50"
+                  : "text-violet-600 hover:text-violet-700 bg-violet-50 hover:bg-violet-100"
+              )}
+            >
+              <Send className="w-3.5 h-3.5" />
+              {sentToDaily ? "전송 완료" : "업무일지로"}
+            </button>
+          )}
 
           {/* 메모/회의록 저장 글: 편집 버튼 */}
           {(section === "MEMO" || section === "MEETING") && !isNew && !isEditing && (
