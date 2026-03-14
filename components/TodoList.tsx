@@ -66,6 +66,8 @@ export default function TodoList({
   const [newTitle, setNewTitle] = useState("");
   const [newDueDate, setNewDueDate] = useState("");
   const [newTagIds, setNewTagIds] = useState<string[]>([]);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dropTarget, setDropTarget] = useState<TodoPriority | null>(null);
   const handleAdd = async () => {
     if (!newTitle.trim() || !addingTo) return;
     await onAdd(newTitle.trim(), {
@@ -84,6 +86,33 @@ export default function TodoList({
     setNewTitle("");
     setNewDueDate("");
     setNewTagIds([]);
+  };
+
+  const handleDragStart = (e: React.DragEvent, id: string) => {
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("todoId", id);
+    setDraggingId(id);
+  };
+
+  const handleDragEnd = () => {
+    setDraggingId(null);
+    setDropTarget(null);
+  };
+
+  const handleDragOver = (e: React.DragEvent, priority: TodoPriority) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    setDropTarget(priority);
+  };
+
+  const handleDrop = async (e: React.DragEvent, priority: TodoPriority) => {
+    e.preventDefault();
+    setDropTarget(null);
+    const todoId = e.dataTransfer.getData("todoId");
+    if (!todoId) return;
+    const todo = todos.find((t) => t.id === todoId);
+    if (!todo || todo.priority === priority) return;
+    await onUpdate(todoId, { priority });
   };
 
   const todoCount = todos.filter((t) => !t.done).length;
@@ -144,7 +173,20 @@ export default function TodoList({
               const isAdding = addingTo === priority;
 
               return (
-                <div key={priority} className="flex flex-col flex-1 min-w-0 overflow-hidden">
+                <div
+                  key={priority}
+                  className={clsx(
+                    "flex flex-col flex-1 min-w-0 overflow-hidden transition-colors",
+                    dropTarget === priority && draggingId && todos.find((t) => t.id === draggingId)?.priority !== priority
+                      ? "bg-indigo-50/40"
+                      : ""
+                  )}
+                  onDragOver={(e) => handleDragOver(e, priority)}
+                  onDragLeave={(e) => {
+                    if (!e.currentTarget.contains(e.relatedTarget as Node)) setDropTarget(null);
+                  }}
+                  onDrop={(e) => handleDrop(e, priority)}
+                >
                   {/* Column header */}
                   <div className={clsx("flex items-center justify-between px-4 py-3 flex-shrink-0", config.headerBg)}>
                     <div className="flex items-center gap-2">
@@ -170,6 +212,9 @@ export default function TodoList({
                           key={todo.id}
                           todo={todo}
                           tags={tags}
+                          isDragging={draggingId === todo.id}
+                          onDragStart={(e) => handleDragStart(e, todo.id)}
+                          onDragEnd={handleDragEnd}
                           onToggle={onToggle}
                           onDelete={onDelete}
                           onUpdate={onUpdate}
@@ -258,9 +303,11 @@ export default function TodoList({
 
 /* ── 할일 아이템 ── */
 function TodoItem({
-  todo, tags, onToggle, onDelete, onUpdate,
+  todo, tags, isDragging, onDragStart, onDragEnd, onToggle, onDelete, onUpdate,
 }: {
-  todo: Todo; tags: Tag[];
+  todo: Todo; tags: Tag[]; isDragging: boolean;
+  onDragStart: (e: React.DragEvent) => void;
+  onDragEnd: () => void;
   onToggle: (id: string, done: boolean) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
   onUpdate: (id: string, data: Partial<Todo> & { tagIds?: string[] }) => Promise<void>;
@@ -292,7 +339,16 @@ function TodoItem({
   const isOverdue = todo.dueDate && new Date(todo.dueDate) < new Date() && !todo.done;
 
   return (
-    <li className={clsx("group border-b border-gray-50 last:border-b-0", expanded && "bg-gray-50/50")}>
+    <li
+      draggable
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
+      className={clsx(
+        "group border-b border-gray-50 last:border-b-0 cursor-grab active:cursor-grabbing select-none transition-opacity",
+        isDragging ? "opacity-40" : "",
+        expanded && "bg-gray-50/50"
+      )}
+    >
       <div className="flex items-start gap-3 px-5 py-3">
         {/* Checkbox */}
         <button
