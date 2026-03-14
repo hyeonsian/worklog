@@ -7,8 +7,8 @@ import { useEffect } from "react";
 import { BookOpen, Loader2 } from "lucide-react";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("admin@worklog.com");
-  const [password, setPassword] = useState("worklog1234");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -16,7 +16,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (status === "authenticated") {
-      router.push("/");
+      router.push("/daily");
     }
   }, [status, router]);
 
@@ -35,7 +35,7 @@ export default function LoginPage() {
       if (result?.error) {
         setError("이메일 또는 비밀번호가 올바르지 않습니다.");
       } else {
-        router.push("/");
+        router.push("/daily");
       }
     } catch {
       setError("로그인 중 오류가 발생했습니다.");
@@ -128,9 +128,6 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <p className="mt-6 text-center text-xs text-gray-400">
-            기본 계정: admin@worklog.com / worklog1234
-          </p>
         </div>
       </div>
     </div>
