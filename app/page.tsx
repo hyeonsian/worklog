@@ -89,7 +89,6 @@ export default function HomePage() {
   useEffect(() => {
     if (session?.user?.id && selectedSection !== "TODO") {
       loadEntries();
-      setSelectedEntry(null);
     }
   }, [selectedSection, selectedDate, search, selectedTags, session?.user?.id]);
 
