@@ -130,7 +130,7 @@ export default function EntryEditor({
     } finally {
       setSaving(false);
     }
-  }, [title, content, date, selectedTagIds, entry?.id, section, tags, onSave]);
+  }, [title, content, date, meetingTime, selectedTagIds, entry?.id, section, tags, onSave]);
 
   // Auto-save for existing entries
   useEffect(() => {
@@ -337,16 +337,11 @@ export default function EntryEditor({
           {section === "MEETING" && !isNew && (
             <button
               onClick={handleSendToDaily}
-              disabled={sendingToDaily || sentToDaily}
-              className={clsx(
-                "flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md transition-colors",
-                sentToDaily
-                  ? "text-green-600 bg-green-50"
-                  : "text-violet-600 hover:text-violet-700 bg-violet-50 hover:bg-violet-100"
-              )}
+              disabled={sendingToDaily}
+              className="flex items-center gap-1.5 text-xs font-medium text-violet-600 hover:text-violet-700 bg-violet-50 hover:bg-violet-100 disabled:opacity-50 px-3 py-1.5 rounded-md transition-colors"
             >
               <Send className="w-3.5 h-3.5" />
-              {sentToDaily ? "전송 완료" : "업무일지로"}
+              {sendingToDaily ? "전송 중..." : "업무일지로"}
             </button>
           )}
 
@@ -393,6 +388,16 @@ export default function EntryEditor({
           </button>
         </div>
       </div>
+
+      {/* 업무일지 전송 성공 토스트 */}
+      {sentToDaily && (
+        <div className="flex items-center gap-2 px-6 py-2.5 bg-green-50 border-b border-green-100 flex-shrink-0">
+          <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
+          <p className="text-xs text-green-700 font-medium">
+            일일 업무일지에 카드로 추가되었습니다. 회의록은 그대로 유지됩니다.
+          </p>
+        </div>
+      )}
 
       {/* Title */}
       <div className="px-8 pt-6 pb-2">
