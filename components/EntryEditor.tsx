@@ -81,6 +81,8 @@ export default function EntryEditor({
   const [sendingToDaily, setSendingToDaily] = useState(false);
   const [sentToDaily, setSentToDaily] = useState(false);
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dateInputRef = useRef<HTMLInputElement>(null);
+  const timeInputRef = useRef<HTMLInputElement>(null);
   const isNew = !entry?.id;
 
   // Reset state when entry changes
@@ -247,9 +249,19 @@ export default function EntryEditor({
 
         <div className="flex items-center gap-2">
           {/* Date */}
-          <div className="flex items-center gap-1.5 text-xs text-gray-500">
-            <Calendar className="w-3.5 h-3.5" />
+          <div className="flex items-center gap-1 text-xs text-gray-500">
+            <button
+              type="button"
+              onClick={() => {
+                try { dateInputRef.current?.showPicker(); } catch { dateInputRef.current?.focus(); }
+              }}
+              className="hover:text-indigo-500 transition-colors p-0.5 rounded"
+              title="날짜 변경"
+            >
+              <Calendar className="w-3.5 h-3.5" />
+            </button>
             <input
+              ref={dateInputRef}
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
@@ -259,13 +271,31 @@ export default function EntryEditor({
 
           {/* Time (회의록 전용) */}
           {section === "MEETING" && (
-            <div className="flex items-center gap-1.5 text-xs text-gray-500">
-              <Clock className="w-3.5 h-3.5" />
+            <div className="flex items-center gap-1 text-xs text-gray-500">
+              <button
+                type="button"
+                onClick={() => timeInputRef.current?.focus()}
+                className="hover:text-indigo-500 transition-colors p-0.5 rounded"
+                title="시간 변경"
+              >
+                <Clock className="w-3.5 h-3.5" />
+              </button>
               <input
-                type="time"
+                ref={timeInputRef}
+                type="text"
                 value={meetingTime}
-                onChange={(e) => setMeetingTime(e.target.value)}
-                className="text-xs text-gray-600 bg-transparent border-none focus:ring-0 cursor-pointer"
+                onChange={(e) => {
+                  const val = e.target.value.replace(/[^0-9:]/g, "").slice(0, 5);
+                  setMeetingTime(val);
+                }}
+                onBlur={(e) => {
+                  // auto-insert colon if user typed 4 digits without it
+                  const val = e.target.value.replace(/[^0-9]/g, "");
+                  if (val.length === 4) setMeetingTime(`${val.slice(0, 2)}:${val.slice(2)}`);
+                }}
+                placeholder="HH:MM"
+                maxLength={5}
+                className="text-xs text-gray-600 bg-transparent border-none focus:ring-0 w-11 placeholder:text-gray-300"
               />
             </div>
           )}
