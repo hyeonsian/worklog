@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { format } from "date-fns";
+import { format, isToday, isTomorrow, startOfDay } from "date-fns";
 import { ko } from "date-fns/locale";
 import {
   Plus,
@@ -10,6 +10,9 @@ import {
   Tag as TagIcon,
   Check,
   CheckSquare,
+  AlertCircle,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import clsx from "clsx";
 import type { Todo, Tag, TodoPriority } from "@/types";
@@ -119,6 +122,14 @@ export default function TodoList({
   const doneCount = todos.filter((t) => t.done).length;
   const visiblePriorities = filter === "ALL" ? PRIORITIES : [filter as TodoPriority];
 
+  // 마감 임박: 오늘 또는 내일 마감이고 미완료인 항목
+  const urgentTodos = todos.filter((t) => {
+    if (t.done || !t.dueDate) return false;
+    const d = new Date(t.dueDate);
+    return isToday(d) || isTomorrow(d);
+  });
+  const [urgentCollapsed, setUrgentCollapsed] = useState(false);
+
   return (
     <div className="h-full flex flex-col bg-white">
       {/* Header */}
@@ -152,6 +163,55 @@ export default function TodoList({
           </div>
         </div>
       </div>
+
+      {/* 마감 임박 배너 */}
+      {urgentTodos.length > 0 && (
+        <div className="flex-shrink-0 border-b border-orange-100 bg-orange-50/60">
+          <button
+            onClick={() => setUrgentCollapsed((v) => !v)}
+            className="w-full flex items-center gap-2 px-4 py-2 text-left hover:bg-orange-50 transition-colors"
+          >
+            <AlertCircle size={14} className="text-orange-500 flex-shrink-0" />
+            <span className="text-xs font-semibold text-orange-700 flex-1">
+              마감 임박
+              <span className="ml-1.5 font-normal text-orange-500">
+                {urgentTodos.length}개
+              </span>
+            </span>
+            {urgentCollapsed ? (
+              <ChevronDown size={13} className="text-orange-400" />
+            ) : (
+              <ChevronUp size={13} className="text-orange-400" />
+            )}
+          </button>
+          {!urgentCollapsed && (
+            <ul className="pb-2 px-4 space-y-1">
+              {urgentTodos.map((todo) => {
+                const d = new Date(todo.dueDate!);
+                const label = isToday(d) ? "오늘" : "내일";
+                const isUrgentToday = isToday(d);
+                const config = PRIORITY_CONFIG[todo.priority];
+                return (
+                  <li key={todo.id} className="flex items-center gap-2 py-1">
+                    <span className={clsx("w-1.5 h-1.5 rounded-full flex-shrink-0", config.dotColor)} />
+                    <span className="text-xs text-gray-700 flex-1 truncate">{todo.title}</span>
+                    <span
+                      className={clsx(
+                        "text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0",
+                        isUrgentToday
+                          ? "bg-red-100 text-red-600"
+                          : "bg-orange-100 text-orange-600"
+                      )}
+                    >
+                      {label} 마감
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+      )}
 
       {/* Columns */}
       <div className="flex-1 overflow-hidden">
@@ -336,7 +396,10 @@ function TodoItem({
     setExpanded(false);
   };
 
-  const isOverdue = todo.dueDate && new Date(todo.dueDate) < new Date() && !todo.done;
+  const isOverdue =
+    todo.dueDate &&
+    startOfDay(new Date(todo.dueDate)) < startOfDay(new Date()) &&
+    !todo.done;
 
   return (
     <li

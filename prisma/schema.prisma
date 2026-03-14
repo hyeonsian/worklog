@@ -31,6 +31,8 @@ model Entry {
   userId    String
   user      User       @relation(fields: [userId], references: [id])
   tags      EntryTag[]
+
+  @@index([userId, type, date])
 }
 
 model Todo {
@@ -44,6 +46,9 @@ model Todo {
   userId    String
   user      User      @relation(fields: [userId], references: [id])
   tags      TodoTag[]
+
+  @@index([userId, done])
+  @@index([userId, dueDate])
 }
 
 model Tag {
@@ -64,7 +69,7 @@ model DailyReflection {
   userId    String
   user      User     @relation(fields: [userId], references: [id])
 
-  @@unique([userId, dateStr])
+  @@unique([userId, dateStr]) // unique constraint also serves as index
 }
 
 model DailyCard {
@@ -82,6 +87,8 @@ model DailyCard {
   userId    String
   user      User           @relation(fields: [userId], references: [id])
   tags      DailyCardTag[]
+
+  @@index([userId, date, slot])
 }
 
 model DailyCardTag {
