@@ -252,19 +252,19 @@ export default function EntryEditor({
           <div className="flex items-center gap-1 text-xs text-gray-500">
             <button
               type="button"
-              onClick={() => dateInputRef.current?.focus()}
+              onClick={() => {
+                try { dateInputRef.current?.showPicker(); } catch { dateInputRef.current?.focus(); }
+              }}
               className="hover:text-indigo-500 transition-colors p-0.5 rounded"
             >
               <Calendar className="w-3.5 h-3.5" />
             </button>
             <input
               ref={dateInputRef}
-              type="text"
+              type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              placeholder="YYYY-MM-DD"
-              maxLength={10}
-              className="text-xs text-gray-600 bg-transparent border-none focus:ring-0 w-24 placeholder:text-gray-300"
+              className="text-xs text-gray-600 bg-transparent border-none focus:ring-0 cursor-pointer [&::-webkit-calendar-picker-indicator]:hidden"
             />
           </div>
 
