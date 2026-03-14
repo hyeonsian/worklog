@@ -103,8 +103,8 @@ export default function CalDAVSettingsModal({
       const calData = await calRes.json();
       if (Array.isArray(calData)) setCalendars(calData);
       setLoadingCalendars(false);
-    } catch {
-      setError("연결 중 오류가 발생했습니다.");
+    } catch (e) {
+      setError(`연결 중 오류: ${e instanceof Error ? e.message : String(e)}`);
     } finally {
       setSaving(false);
     }
@@ -115,20 +115,17 @@ export default function CalDAVSettingsModal({
     setError("");
     try {
       const res = await fetch("/api/caldav/settings", {
-        method: "POST",
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          username: settings?.username || username,
-          password: password || "KEEP_EXISTING",
           calendarUrl: cal.url,
           calendarName: cal.displayName,
         }),
       });
 
       if (!res.ok) {
-        // If password is "KEEP_EXISTING", we need the real password
-        // Re-fetch settings to update calendarUrl via a different approach
-        setError("캘린더 선택을 위해 비밀번호를 다시 입력해주세요.");
+        const data = await res.json();
+        setError(data.error || "캘린더 선택에 실패했습니다.");
         return;
       }
 

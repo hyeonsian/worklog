@@ -55,11 +55,11 @@ export async function POST(req: Request) {
   try {
     await listCalendars({ serverUrl, username, password });
   } catch (e) {
-    console.error("CalDAV connection test failed:", e);
+    const errMsg = e instanceof Error ? e.message : String(e);
+    console.error("CalDAV connection test failed:", errMsg);
     return NextResponse.json(
       {
-        error:
-          "iCloud 연결에 실패했습니다. Apple ID와 앱 전용 비밀번호를 확인해주세요.",
+        error: `iCloud 연결 실패: ${errMsg}`,
       },
       { status: 400 }
     );
@@ -83,6 +83,34 @@ export async function POST(req: Request) {
       calendarUrl: calendarUrl || null,
       calendarName: calendarName || null,
       enabled,
+    },
+  });
+
+  return NextResponse.json({
+    id: settings.id,
+    serverUrl: settings.serverUrl,
+    username: settings.username,
+    calendarUrl: settings.calendarUrl,
+    calendarName: settings.calendarName,
+    enabled: settings.enabled,
+    hasPassword: true,
+  });
+}
+
+// PATCH: 캘린더 선택만 변경 (연결 테스트 없이)
+export async function PATCH(req: Request) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const body = await req.json();
+  const { calendarUrl, calendarName } = body;
+
+  const settings = await prisma.calDAVSettings.update({
+    where: { userId: session.user.id },
+    data: {
+      calendarUrl: calendarUrl || null,
+      calendarName: calendarName || null,
     },
   });
 

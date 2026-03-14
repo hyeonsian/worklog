@@ -1,4 +1,4 @@
-import { createDAVClient, DAVCalendar, DAVObject } from "tsdav";
+import { createDAVClient, DAVCalendar, DAVObject, DAVAccount } from "tsdav";
 
 export interface CalDAVCredentials {
   serverUrl: string;
@@ -86,18 +86,24 @@ function parseICSEvent(icsData: string, calendarColor?: string): CalendarEvent |
 
 /**
  * Create a CalDAV client connected to iCloud.
+ * Uses Apple-specific account type for proper iCloud discovery.
  */
 async function getClient(credentials: CalDAVCredentials) {
-  const client = await createDAVClient({
-    serverUrl: credentials.serverUrl,
-    credentials: {
-      username: credentials.username,
-      password: credentials.password,
-    },
-    authMethod: "Basic",
-    defaultAccountType: "caldav",
-  });
-  return client;
+  try {
+    const client = await createDAVClient({
+      serverUrl: credentials.serverUrl,
+      credentials: {
+        username: credentials.username,
+        password: credentials.password,
+      },
+      authMethod: "Basic",
+      defaultAccountType: "caldav",
+    });
+    return client;
+  } catch (e) {
+    console.error("[CalDAV] createDAVClient failed:", e);
+    throw new Error(`CalDAV client creation failed: ${e instanceof Error ? e.message : String(e)}`);
+  }
 }
 
 /**
@@ -107,7 +113,14 @@ export async function listCalendars(
   credentials: CalDAVCredentials
 ): Promise<CalendarInfo[]> {
   const client = await getClient(credentials);
-  const calendars = await client.fetchCalendars();
+
+  let calendars: DAVCalendar[];
+  try {
+    calendars = await client.fetchCalendars();
+  } catch (e) {
+    console.error("[CalDAV] fetchCalendars failed:", e);
+    throw new Error(`Calendar fetch failed: ${e instanceof Error ? e.message : String(e)}`);
+  }
 
   return calendars.map((cal: DAVCalendar) => ({
     url: cal.url,
