@@ -11,10 +11,12 @@ import EntryEditor from "@/components/EntryEditor";
 import TodoList from "@/components/TodoList";
 import DailyWeekView from "@/components/DailyWeekView";
 import CalDAVSettingsModal from "@/components/CalDAVSettings";
+import MonthlySchedule from "@/components/MonthlySchedule";
 import type { Entry, Todo, Tag, Section, CalDAVSettingsInfo } from "@/types";
 
 const SECTION_MAP: Record<string, Section> = {
   daily: "DAILY",
+  schedule: "SCHEDULE",
   meeting: "MEETING",
   todo: "TODO",
   memo: "MEMO",
@@ -22,6 +24,7 @@ const SECTION_MAP: Record<string, Section> = {
 
 const SECTION_TO_PATH: Record<Section, string> = {
   DAILY: "daily",
+  SCHEDULE: "schedule",
   MEETING: "meeting",
   TODO: "todo",
   MEMO: "memo",
@@ -107,7 +110,7 @@ export default function SectionPage({
 
   // Load entries
   const loadEntries = useCallback(async () => {
-    if (selectedSection === "TODO") return;
+    if (selectedSection === "TODO" || selectedSection === "SCHEDULE") return;
     setLoadingEntries(true);
     try {
       const params = new URLSearchParams();
@@ -115,7 +118,8 @@ export default function SectionPage({
 
       if (search) {
         params.set("search", search);
-      } else {
+      } else if (selectedSection !== "MEMO" && selectedSection !== "MEETING") {
+        // 메모와 회의록은 날짜 필터 없이 전체 목록을 표시
         params.set("date", format(selectedDate, "yyyy-MM-dd"));
       }
 
@@ -136,7 +140,7 @@ export default function SectionPage({
   }, [selectedSection, selectedDate, search, selectedTags]);
 
   useEffect(() => {
-    if (session?.user?.id && selectedSection !== "TODO") {
+    if (session?.user?.id && selectedSection !== "TODO" && selectedSection !== "SCHEDULE") {
       loadEntries();
     }
   }, [selectedSection, selectedDate, search, selectedTags, session?.user?.id]);
@@ -469,7 +473,11 @@ export default function SectionPage({
         className="flex-1 flex overflow-hidden transition-all duration-200"
         style={{ marginLeft: sidebarCollapsed ? 52 : 260 }}
       >
-        {selectedSection === "DAILY" ? (
+        {selectedSection === "SCHEDULE" ? (
+          <div className="flex-1 overflow-hidden">
+            <MonthlySchedule caldavEnabled={!!caldavSettings?.calendarUrl && caldavSettings?.enabled} />
+          </div>
+        ) : selectedSection === "DAILY" ? (
           <div className="flex-1 overflow-hidden">
             <DailyWeekView tags={tags} selectedTags={selectedTags} caldavEnabled={!!caldavSettings?.calendarUrl && caldavSettings?.enabled} />
           </div>

@@ -37,6 +37,7 @@ interface EntryEditorProps {
 
 const SECTION_TO_TYPE: Record<Section, EntryType | null> = {
   DAILY: "DAILY",
+  SCHEDULE: null,
   MEETING: "MEETING",
   MEMO: "MEMO",
   TODO: null,

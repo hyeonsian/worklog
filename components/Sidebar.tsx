@@ -17,6 +17,7 @@ import {
   X,
   Check,
   Cloud,
+  CalendarDays,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
@@ -44,10 +45,11 @@ interface SidebarProps {
 }
 
 const NAV_ITEMS: { label: string; section: Section; icon: React.ReactNode }[] = [
-  { label: "일일 업무일지", section: "DAILY",   icon: <FileText    className="w-4 h-4" /> },
-  { label: "회의록",        section: "MEETING",  icon: <Users       className="w-4 h-4" /> },
-  { label: "개인 할일",     section: "TODO",     icon: <CheckSquare className="w-4 h-4" /> },
-  { label: "메모",          section: "MEMO",     icon: <StickyNote  className="w-4 h-4" /> },
+  { label: "월간 일정",     section: "SCHEDULE", icon: <CalendarDays className="w-4 h-4" /> },
+  { label: "일일 업무일지", section: "DAILY",    icon: <FileText     className="w-4 h-4" /> },
+  { label: "회의록",        section: "MEETING",  icon: <Users        className="w-4 h-4" /> },
+  { label: "개인 할일",     section: "TODO",     icon: <CheckSquare  className="w-4 h-4" /> },
+  { label: "메모",          section: "MEMO",     icon: <StickyNote   className="w-4 h-4" /> },
 ];
 
 const SIDEBAR_W = 260;

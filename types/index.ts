@@ -76,7 +76,7 @@ export interface Todo {
   tags: TodoTag[];
 }
 
-export type Section = "DAILY" | "MEETING" | "TODO" | "MEMO";
+export type Section = "DAILY" | "SCHEDULE" | "MEETING" | "TODO" | "MEMO";
 
 export type TodoPriority = "HIGH" | "MEDIUM" | "LOW";
 

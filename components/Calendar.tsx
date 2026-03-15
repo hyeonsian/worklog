@@ -1,6 +1,7 @@
 "use client";
 
 import ReactCalendar from "react-calendar";
+import { format } from "date-fns";
 import "react-calendar/dist/Calendar.css";
 
 interface CalendarProps {
@@ -8,7 +9,10 @@ interface CalendarProps {
   onDateChange: (date: Date) => void;
 }
 
-export default function Calendar({ selectedDate, onDateChange }: CalendarProps) {
+export default function Calendar({
+  selectedDate,
+  onDateChange,
+}: CalendarProps) {
   return (
     <div className="px-2">
       <ReactCalendar

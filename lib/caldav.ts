@@ -251,6 +251,35 @@ export async function createEvent(
 }
 
 /**
+ * Update an existing event in the calendar.
+ */
+export async function updateEvent(
+  credentials: CalDAVCredentials,
+  eventUrl: string,
+  etag: string,
+  event: {
+    uid: string;
+    title: string;
+    description?: string;
+    location?: string;
+    start: string;
+    end: string;
+    allDay?: boolean;
+  }
+): Promise<void> {
+  const client = await getClient(credentials);
+  const icsData = buildICS(event);
+
+  await client.updateCalendarObject({
+    calendarObject: {
+      url: eventUrl,
+      etag,
+      data: icsData,
+    } as DAVObject,
+  });
+}
+
+/**
  * Delete an event from the calendar.
  */
 export async function deleteEvent(

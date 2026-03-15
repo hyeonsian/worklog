@@ -17,6 +17,7 @@ interface EntryListProps {
 
 const SECTION_LABELS: Record<Section, string> = {
   DAILY: "일일 업무일지",
+  SCHEDULE: "월간 일정",
   MEETING: "회의록",
   TODO: "개인 할일",
   MEMO: "메모",
@@ -24,6 +25,7 @@ const SECTION_LABELS: Record<Section, string> = {
 
 const SECTION_ICONS: Record<Section, React.ReactNode> = {
   DAILY: <FileText className="w-4 h-4" />,
+  SCHEDULE: null,
   MEETING: <Users className="w-4 h-4" />,
   TODO: null,
   MEMO: <StickyNote className="w-4 h-4" />,
